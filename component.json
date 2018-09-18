@@ -1,0 +1,10 @@
+{
+    "name": "auth",
+    "description": "auth component",
+    "local": [],
+    "scripts": ["index.js"],
+    "main": "index.js",
+    "dependencies": {
+        "serandomps/utils": "master"
+    }
+}
