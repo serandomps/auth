@@ -1,5 +1,19 @@
-var sera = require('sera')
-var store = require('store')
+var store = require('store');
+var utils = require('utils');
+
+var boot = false;
+
+var context = {
+    serandives: {
+        login: utils.resolve('accounts:///signin')
+    },
+    facebook: {
+        login: 'https://www.facebook.com/dialog/oauth',
+        location: utils.resolve('accounts:///auth/oauth'),
+        scopes: ['email', 'public_profile']
+    }
+};
+
 
 var expires = function (expin) {
     return new Date().getTime() + expin - REFRESH_BEFORE;
@@ -8,27 +22,6 @@ var expires = function (expin) {
 var next = function (expires) {
     var exp = expires - new Date().getTime();
     return exp > 0 ? exp : null;
-};
-
-var initialize = function () {
-    var usr = serand.store('user');
-    if (!usr) {
-        return emitup(null);
-    }
-    console.log(usr);
-    var nxt = next(usr.expires);
-    if (!nxt) {
-        return emitup(null);
-    }
-    refresh(usr, function (err, usr) {
-        findUserInfo(usr, function (err, usr) {
-            if (err) {
-                console.error(err)
-                return
-            }
-            emitup(usr);
-        });
-    });
 };
 
 var refresh = function (usr, done) {
@@ -67,11 +60,48 @@ var refresh = function (usr, done) {
     });
 };
 
+var loginUri = function (type, location) {
+    var o = context[type];
+    location = location || o.location;
+    var url = o.login + '?client_id=' + o.clientId;
+    url += (location ? '&redirect_uri=' + location : '');
+    url += (o.scopes ? '&scope=' + o.scopes.join(',') : '');
+    return url;
+};
+
 module.exports = function (ctx, next) {
-    var user = store.persist('user')
+    var user = store.persist('user');
     if (user) {
-        ctx.user = user
-        return next()
+        ctx.user = user;
+        return next();
     }
-    next()
-}
+    next();
+};
+
+module.exports.authenticator = function (options, done) {
+    done(null, loginUri(options.type, options.location));
+};
+
+
+utils.configs('boot', function (err, config) {
+    if (err) {
+        return console.error(err);
+    }
+    var name;
+    var clients = config.clients;
+    for (name in clients) {
+        if (!clients.hasOwnProperty(name)) {
+            continue;
+        }
+        var o = context[name];
+        o.clientId = clients[name];
+        var pending = o.pending;
+        if (!pending) {
+            continue;
+        }
+        var options = pending.options;
+        pending.done(null, loginUri(name, options.location));
+        delete o.pending;
+    }
+    boot = true;
+});
