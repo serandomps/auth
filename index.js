@@ -70,9 +70,9 @@ var loginUri = function (type, location) {
 };
 
 module.exports = function (ctx, next) {
-    var user = store.persist('user');
+    var token = store.persist('token');
     if (user) {
-        ctx.user = user;
+        ctx.token = token;
         return next();
     }
     next();
