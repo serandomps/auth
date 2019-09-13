@@ -63,7 +63,7 @@ var refresh = function (usr, done) {
 var loginUri = function (type, location) {
     var o = context[type];
     location = location || o.location;
-    var url = o.login + '?client_id=' + o.clientId;
+    var url = o.login + '?client_id=' + o.client;
     url += (location ? '&redirect_uri=' + location : '');
     url += (o.scopes ? '&scope=' + o.scopes.join(',') : '');
     return url;
@@ -82,7 +82,6 @@ module.exports.authenticator = function (options, done) {
     done(null, loginUri(options.type, options.location));
 };
 
-
 utils.configs('boot', function (err, config) {
     if (err) {
         return console.error(err);
@@ -94,7 +93,7 @@ utils.configs('boot', function (err, config) {
             continue;
         }
         var o = context[name];
-        o.clientId = clients[name];
+        o.client = clients[name];
         var pending = o.pending;
         if (!pending) {
             continue;
