@@ -8,7 +8,6 @@ var context = {
         login: utils.resolve('accounts:///signin')
     },
     facebook: {
-        login: 'https://www.facebook.com/dialog/oauth',
         location: utils.resolve('accounts:///auth/oauth'),
         scopes: ['email', 'public_profile']
     }
@@ -63,10 +62,10 @@ var refresh = function (usr, done) {
 var loginUri = function (type, location) {
     var o = context[type];
     location = location || o.location;
-    var url = o.login + '?client_id=' + o.client;
-    url += (location ? '&redirect_uri=' + location : '');
-    url += (o.scopes ? '&scope=' + o.scopes.join(',') : '');
-    return url;
+    var uri = o.login + '?client_id=' + o.id;
+    uri += (location ? '&redirect_uri=' + location : '');
+    uri += (o.scopes ? '&scope=' + o.scopes.join(',') : '');
+    return uri;
 };
 
 module.exports = function (ctx, next) {
@@ -82,6 +81,13 @@ module.exports.authenticator = function (options, done) {
     done(null, loginUri(options.type, options.location));
 };
 
+module.exports.registrar = function (options, done) {
+    var o = context.serandives;
+    var uri = options.path + '?client_id=' + o.id;
+    uri += (options.location ? '&redirect_uri=' + options.location : '');
+    done(null, uri);
+};
+
 utils.configs('boot', function (err, config) {
     if (err) {
         return console.error(err);
@@ -93,7 +99,14 @@ utils.configs('boot', function (err, config) {
             continue;
         }
         var o = context[name];
-        o.client = clients[name];
+        var client = clients[name];
+        var key;
+        for (key in client) {
+            if (!client.hasOwnProperty(key)) {
+                continue;
+            }
+            o[key] = client[key];
+        }
         var pending = o.pending;
         if (!pending) {
             continue;
