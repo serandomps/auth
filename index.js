@@ -1,5 +1,5 @@
-var store = require('store');
 var utils = require('utils');
+var serand = require('serand');
 
 var boot = false;
 
@@ -13,17 +13,16 @@ var context = {
     }
 };
 
-
-var expires = function (expin) {
+/*var expires = function (expin) {
     return new Date().getTime() + expin - REFRESH_BEFORE;
 };
 
 var next = function (expires) {
     var exp = expires - new Date().getTime();
     return exp > 0 ? exp : null;
-};
+};*/
 
-var refresh = function (usr, done) {
+/*var refresh = function (usr, done) {
     done = done || serand.none;
     if (!usr) {
         return done('!user');
@@ -57,7 +56,7 @@ var refresh = function (usr, done) {
             done(xhr);
         }
     });
-};
+};*/
 
 var loginUri = function (type, location) {
     var o = context[type];
@@ -67,7 +66,7 @@ var loginUri = function (type, location) {
     uri += (o.scopes ? '&scope=' + o.scopes.join(',') : '');
     return uri;
 };
-
+/*
 module.exports = function (ctx, next) {
     var token = store.persist('token');
     if (user) {
@@ -75,7 +74,7 @@ module.exports = function (ctx, next) {
         return next();
     }
     next();
-};
+};*/
 
 module.exports.authenticator = function (options, done) {
     done(null, loginUri(options.type, options.location));
@@ -86,6 +85,41 @@ module.exports.registrar = function (options, done) {
     var uri = options.path + '?client_id=' + o.id;
     uri += (options.location ? '&redirect_uri=' + options.location : '');
     done(null, uri);
+};
+
+module.exports.signin = function (o) {
+    return function (ctx, next) {
+        var location = ctx.query.redirect_uri
+
+        serand.persist('state', {
+            location: location
+        });
+
+        module.exports.authenticator({
+            type: 'serandives',
+            location: o.loginUri
+        }, function (err, uri) {
+            if (err) {
+                return next(err);
+            }
+            serand.redirect(uri);
+        });
+    };
+};
+
+module.exports.force = function (ctx, next) {
+    if (ctx.token) {
+        return next();
+    }
+    var location = ctx.path;
+    var self = utils.resolve('accounts://');
+    if (location.indexOf(self) === 0) {
+        location = location.substring(self.length);
+    }
+    serand.persist('state', {
+        location: location
+    });
+    serand.redirect('/signin');
 };
 
 utils.configs('boot', function (err, config) {
