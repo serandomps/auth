@@ -30,7 +30,7 @@ var next = function (expires) {
     $.ajax({
         token: true,
         method: 'POST',
-        url: utils.resolve('accounts:///apis/v/tokens'),
+        url: utils.resolve('apis:///v/tokens'),
         data: {
             grant_type: 'refresh_token',
             refresh_token: usr.refresh
